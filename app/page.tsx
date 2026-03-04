@@ -1,65 +1,135 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { canAccessDashboard, normalizeRole, type ProfileRow } from "@/lib/auth/profile";
+import { supabase } from "@/lib/supabase/client";
 
 export default function Home() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (loginError || !data.user) {
+      setIsLoading(false);
+      setError("Credenciales invalidas o cuenta no verificada.");
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,full_name,email,role,is_approved")
+      .eq("id", data.user.id)
+      .maybeSingle<ProfileRow>();
+
+    if (profileError || !profile) {
+      setIsLoading(false);
+      setError("No se encontro tu perfil. Verifica que la tabla profiles este creada.");
+      return;
+    }
+
+    const role = normalizeRole(profile.role);
+    if (canAccessDashboard(role, profile.is_approved)) {
+      router.push("/dashboard");
+    } else {
+      router.push("/wait");
+    }
+
+    setIsLoading(false);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#f2e7df_0%,_#e6d3c5_34%,_#c4a793_62%,_#0a193b_100%)] px-4 py-8">
+      <section className="w-full max-w-md rounded-2xl border border-[#d7b7a0]/45 bg-white p-5 shadow-[0_18px_45px_rgba(10,25,59,0.3)] sm:p-8">
+        <div className="mb-2 flex justify-center">
+          <Image
+            src="/ELEVe-logo-transparente.svg"
+            alt="ELEVE"
+            width={210}
+            height={75}
+            priority
+            className="h-auto w-[170px] sm:w-[210px]"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <p className="mb-6 text-center text-sm text-[#7b5f4d]">Plataforma de gestion y metricas</p>
+
+        <form className="space-y-4" onSubmit={onLogin}>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium text-[#0a193b]">
+              Usuario
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="correo@empresa.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="w-full rounded-lg border border-[#d7b7a0]/50 px-3 py-2.5 text-sm text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:ring-2 focus:ring-[#d7b7a0]/40"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-sm font-medium text-[#0a193b]">
+              Contrasena
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Escribe tu contrasena"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              className="w-full rounded-lg border border-[#d7b7a0]/50 px-3 py-2.5 text-sm text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:ring-2 focus:ring-[#d7b7a0]/40"
+            />
+          </div>
+
+          {error && <p className="text-xs text-red-600">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-2 w-full rounded-lg bg-[#0a193b] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#12285e]"
           >
-            Documentation
-          </a>
+            {isLoading ? "Ingresando..." : "Iniciar sesion"}
+          </button>
+        </form>
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <Link
+            href="/cambiar-contrasena"
+            className="text-xs text-[#0a193b]/80 transition hover:text-[#d7b7a0]"
+          >
+            Olvide mi contrasena
+          </Link>
+          <Link
+            href="/registro"
+            className="text-xs text-[#0a193b]/80 transition hover:text-[#d7b7a0]"
+          >
+            Crear cuenta
+          </Link>
         </div>
-      </main>
-    </div>
+
+      </section>
+    </main>
   );
 }
