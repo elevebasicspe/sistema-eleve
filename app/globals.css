@@ -24,3 +24,23 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes eleve-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.eleve-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(215, 183, 160, 0.12) 25%,
+    rgba(215, 183, 160, 0.28) 37%,
+    rgba(215, 183, 160, 0.12) 63%
+  );
+  background-size: 400% 100%;
+  animation: eleve-shimmer 1.2s ease-in-out infinite;
+}
