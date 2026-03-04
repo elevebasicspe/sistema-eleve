@@ -72,18 +72,24 @@ export default function MiCuentaPage() {
     const safeExt = ["png", "jpg", "jpeg", "webp"].includes(extension)
       ? extension
       : "jpg";
-    const path = `${profile.id}/avatar.${safeExt}`;
+    const { data: authData } = await supabase.auth.getUser();
+    const uid = authData.user?.id ?? profile.id;
+    const path = `${uid}/${Date.now()}-avatar.${safeExt}`;
 
     const { error: uploadStorageError } = await supabase.storage
       .from("avatars")
       .upload(path, selectedFile, {
-        upsert: true,
+        upsert: false,
         cacheControl: "3600",
       });
 
     if (uploadStorageError) {
       setIsUploading(false);
-      setUploadError(`No se pudo subir la imagen: ${uploadStorageError.message}`);
+      setUploadError(
+        uploadStorageError.message.toLowerCase().includes("row-level security")
+          ? "No se pudo subir la imagen por policy de Storage. Ejecuta el SQL de supabase/avatar_profile.sql y prueba de nuevo."
+          : `No se pudo subir la imagen: ${uploadStorageError.message}`
+      );
       return;
     }
 
