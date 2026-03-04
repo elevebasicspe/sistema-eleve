@@ -23,6 +23,15 @@ type DashboardUser = {
 
 type SelfProfile = ProfileRow;
 
+function parseJsonSafe<T>(raw: string): T {
+  if (!raw) return {} as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return {} as T;
+  }
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -45,6 +54,7 @@ export default function DashboardPage() {
 
   const canDeleteTarget = (target: DashboardUser): boolean => {
     if (!selfProfile) return false;
+    if (target.id === selfProfile.id) return false;
     if (selfProfile.role === "owner") return true;
     if (selfProfile.role === "admin") return target.role !== "owner";
     return false;
@@ -58,10 +68,10 @@ export default function DashboardPage() {
     });
 
     const raw = await response.text();
-    const payload = (raw ? JSON.parse(raw) : {}) as {
+    const payload = parseJsonSafe<{
       users?: DashboardUser[];
       error?: string;
-    };
+    }>(raw);
 
     if (!response.ok) {
       throw new Error(payload.error || "No se pudo listar usuarios.");
@@ -163,7 +173,7 @@ export default function DashboardPage() {
       });
 
       const raw = await response.text();
-      const payload = (raw ? JSON.parse(raw) : {}) as { error?: string };
+      const payload = parseJsonSafe<{ error?: string }>(raw);
       if (!response.ok) {
         throw new Error(payload.error || "No se pudo aprobar usuario.");
       }
@@ -194,7 +204,7 @@ export default function DashboardPage() {
       });
 
       const raw = await response.text();
-      const payload = (raw ? JSON.parse(raw) : {}) as { error?: string };
+      const payload = parseJsonSafe<{ error?: string }>(raw);
       if (!response.ok) {
         throw new Error(payload.error || "No se pudo borrar usuario.");
       }

@@ -14,15 +14,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo inicializar el cliente admin.",
+      },
+      { status: 500 }
+    );
+  }
+
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id,full_name,email,role,is_approved,created_at")
-    .order("created_at", { ascending: false });
+    .select("id,full_name,email,role,is_approved")
+    .order("full_name", { ascending: true });
 
   if (error) {
     return NextResponse.json(
-      { error: "No se pudo listar usuarios." },
+      { error: `No se pudo listar usuarios: ${error.message}` },
       { status: 500 }
     );
   }

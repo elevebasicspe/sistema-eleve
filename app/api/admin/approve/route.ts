@@ -33,7 +33,20 @@ export async function POST(request: NextRequest) {
   }
 
   const approvedRole = normalizeApproveRole(payload.role);
-  const supabaseAdmin = getSupabaseAdmin();
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo inicializar el cliente admin.",
+      },
+      { status: 500 }
+    );
+  }
 
   const { data: target, error: targetError } = await supabaseAdmin
     .from("profiles")
@@ -60,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   if (updateError) {
     return NextResponse.json(
-      { error: "No se pudo aprobar el usuario." },
+      { error: `No se pudo aprobar el usuario: ${updateError.message}` },
       { status: 500 }
     );
   }
