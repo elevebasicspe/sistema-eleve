@@ -7,6 +7,7 @@ export type ProfileRow = {
   email: string;
   role: AppRole;
   is_approved: boolean;
+  avatar_url?: string | null;
   created_by_app?: string;
 };
 

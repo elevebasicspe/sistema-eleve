@@ -152,6 +152,7 @@ export default function UsuariosPage() {
     <PanelShell
       title="Usuarios"
       subtitle="Gestion y aprobacion de cuentas del sistema."
+      profile={profile}
     >
       {!isManager && (
         <section className="rounded-2xl border border-[#d7b7a0]/45 bg-white p-6 shadow-[0_6px_16px_rgba(10,25,59,0.12)]">

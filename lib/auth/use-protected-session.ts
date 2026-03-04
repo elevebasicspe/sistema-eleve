@@ -35,11 +35,22 @@ export function useProtectedSession() {
       return;
     }
 
-    const { data: profile } = await supabase
+    const primary = await supabase
       .from("profiles")
-      .select("id,full_name,email,role,is_approved")
+      .select("id,full_name,email,role,is_approved,avatar_url")
       .eq("id", user.id)
       .maybeSingle<ProfileRow>();
+
+    const fallback =
+      primary.error && primary.error.message.toLowerCase().includes("avatar_url")
+        ? await supabase
+            .from("profiles")
+            .select("id,full_name,email,role,is_approved")
+            .eq("id", user.id)
+            .maybeSingle<ProfileRow>()
+        : null;
+
+    const profile = fallback?.data ?? primary.data;
 
     if (!profile) {
       router.replace("/wait");

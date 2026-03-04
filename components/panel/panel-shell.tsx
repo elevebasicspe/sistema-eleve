@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
+import { type ProtectedProfile } from "@/lib/auth/use-protected-session";
+import { supabase } from "@/lib/supabase/client";
 
 type MenuItem = {
   label: string;
@@ -90,6 +92,7 @@ const ACCOUNT_MENU: MenuItem = {
 type PanelShellProps = {
   title: string;
   subtitle?: string;
+  profile: ProtectedProfile;
   actions?: ReactNode;
   children: ReactNode;
 };
@@ -103,10 +106,24 @@ function itemClass(active: boolean) {
 export function PanelShell({
   title,
   subtitle,
+  profile,
   actions,
   children,
 }: PanelShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const initials =
+    profile.full_name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "E";
+
+  const onSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace("/");
+  };
 
   return (
     <main className="min-h-screen bg-[#f3f1ef]">
@@ -148,13 +165,55 @@ export function PanelShell({
               <div className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#0a193b]/45">
                 Cuenta
               </div>
-              <Link
-                href={ACCOUNT_MENU.href}
-                className={itemClass(pathname === ACCOUNT_MENU.href)}
-              >
-                {ACCOUNT_MENU.icon}
-                {ACCOUNT_MENU.label}
-              </Link>
+              <div className="rounded-xl border border-[#d7b7a0]/45 bg-[#faf4ef] p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href={ACCOUNT_MENU.href}
+                    className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-[#f6ebe3]"
+                  >
+                    <div className="h-10 w-10 overflow-hidden rounded-full border border-[#d7b7a0]/45 bg-[#e9d3c3]">
+                      {profile.avatar_url ? (
+                        <div
+                          className="h-full w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url("${profile.avatar_url}")` }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#0a193b]">
+                          {initials}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#0a193b]">
+                        {profile.full_name}
+                      </p>
+                      <p className="truncate text-xs uppercase tracking-wide text-[#0a193b]/70">
+                        {profile.role}
+                      </p>
+                    </div>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={onSignOut}
+                    title="Cerrar sesion"
+                    aria-label="Cerrar sesion"
+                    className="rounded-lg p-2 text-[#0a193b]/70 transition hover:bg-[#f6ebe3] hover:text-[#0a193b]"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <path d="M16 17l5-5-5-5" />
+                      <path d="M21 12H9" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </aside>

@@ -110,6 +110,7 @@ export default function DashboardPage() {
     <PanelShell
       title="Dashboard"
       subtitle="Vista general de control financiero y operativo de ELEVE."
+      profile={profile}
       actions={
         <>
           <button className="rounded-lg bg-[#0a193b] px-3 py-2 text-xs font-semibold text-white">
