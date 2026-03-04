@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { canAccessDashboard, normalizeRole, type ProfileRow } from "@/lib/auth/profile";
 import { supabase } from "@/lib/supabase/client";
@@ -13,6 +13,21 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const hasVerificationParams =
+      url.searchParams.has("code") ||
+      url.searchParams.has("token_hash") ||
+      url.searchParams.has("type") ||
+      hashParams.has("access_token") ||
+      hashParams.has("refresh_token");
+
+    if (hasVerificationParams) {
+      router.replace(`/verify${url.search}${url.hash}`);
+    }
+  }, [router]);
 
   const onLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
