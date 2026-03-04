@@ -36,14 +36,56 @@ export default function Home() {
       .eq("id", data.user.id)
       .maybeSingle<ProfileRow>();
 
-    if (profileError || !profile) {
+    if (profileError) {
       setIsLoading(false);
-      setError("No se encontro tu perfil. Verifica que la tabla profiles este creada.");
+      setError("No se pudo leer tu perfil.");
       return;
     }
 
-    const role = normalizeRole(profile.role);
-    if (canAccessDashboard(role, profile.is_approved)) {
+    let resolvedProfile = profile;
+    if (!resolvedProfile) {
+      const metadataName =
+        typeof data.user.user_metadata?.full_name === "string"
+          ? data.user.user_metadata.full_name.trim()
+          : "";
+      const safeName =
+        metadataName || data.user.email?.split("@")[0] || "Usuario";
+      const requestedRole = normalizeRole(data.user.user_metadata?.role);
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          full_name: safeName,
+          email: data.user.email || email,
+          role: requestedRole,
+          is_approved: requestedRole === "owner",
+          created_by_app: "OMNI AGENCIA S.A.C.",
+        })
+        .select("id,full_name,email,role,is_approved")
+        .single<ProfileRow>();
+
+      if (insertError) {
+        const { data: fetchedAfterInsert } = await supabase
+          .from("profiles")
+          .select("id,full_name,email,role,is_approved")
+          .eq("id", data.user.id)
+          .maybeSingle<ProfileRow>();
+
+        if (!fetchedAfterInsert) {
+          setIsLoading(false);
+          setError("No se pudo crear tu perfil en profiles.");
+          return;
+        }
+
+        resolvedProfile = fetchedAfterInsert;
+      } else {
+        resolvedProfile = inserted;
+      }
+    }
+
+    const role = normalizeRole(resolvedProfile.role);
+    if (canAccessDashboard(role, resolvedProfile.is_approved)) {
       router.push("/dashboard");
     } else {
       router.push("/wait");

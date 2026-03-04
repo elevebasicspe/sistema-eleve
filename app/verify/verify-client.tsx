@@ -25,6 +25,18 @@ export function VerifyClient() {
 
     const runVerification = async () => {
       try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const hashAccessToken = hashParams.get("access_token");
+        const hashRefreshToken = hashParams.get("refresh_token");
+
+        if (hashAccessToken && hashRefreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          });
+          if (error) throw error;
+        }
+
         if (callbackData.code) {
           const { error } = await supabase.auth.exchangeCodeForSession(callbackData.code);
           if (error) throw error;
