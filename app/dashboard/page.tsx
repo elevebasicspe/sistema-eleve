@@ -57,7 +57,8 @@ export default function DashboardPage() {
       },
     });
 
-    const payload = (await response.json()) as {
+    const raw = await response.text();
+    const payload = (raw ? JSON.parse(raw) : {}) as {
       users?: DashboardUser[];
       error?: string;
     };
@@ -161,7 +162,8 @@ export default function DashboardPage() {
         body: JSON.stringify({ userId, role }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const raw = await response.text();
+      const payload = (raw ? JSON.parse(raw) : {}) as { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "No se pudo aprobar usuario.");
       }
@@ -191,7 +193,8 @@ export default function DashboardPage() {
         },
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const raw = await response.text();
+      const payload = (raw ? JSON.parse(raw) : {}) as { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "No se pudo borrar usuario.");
       }
