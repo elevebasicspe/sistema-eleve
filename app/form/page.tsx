@@ -36,6 +36,15 @@ function toYmd(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function formatShortDate(value: string): string {
+  if (!value) return "--/--/--";
+
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+
+  return `${day}/${month}/${year.slice(-2)}`;
+}
+
 function getIncomeFormLabel(category?: CategoryOption | null): string {
   if (!category) return "Sin categoria";
   return category.category_name?.trim() || category.name;
@@ -72,6 +81,24 @@ function CheckIcon() {
       aria-hidden="true"
     >
       <path d="m5 12 5 5L20 7" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5 text-[#0a193b]/58"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
     </svg>
   );
 }
@@ -404,15 +431,26 @@ export default function PublicFormPage() {
                       <label htmlFor="date" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
                         Fecha
                       </label>
+                      <div className="relative mt-1">
                         <input
                           id="date"
                           type="date"
                           value={date}
                           onChange={(event) => setDate(event.target.value)}
                           required
-                          className="eleve-date-input mt-1 min-h-16 w-full min-w-0 rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
+                          className="eleve-date-input absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                         />
+                        <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-[#0a193b]/64">Fecha:</span>
+                            <strong className="text-[1.05rem] font-semibold text-[#0a193b]">
+                              {formatShortDate(date)}
+                            </strong>
+                          </div>
+                          <CalendarIcon />
+                        </div>
                       </div>
+                    </div>
                   </div>
                 </div>
               </section>
