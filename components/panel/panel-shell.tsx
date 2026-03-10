@@ -69,6 +69,15 @@ const MAIN_MENU: MenuItem[] = [
     ),
   },
   {
+    label: "Cuentas bancarias",
+    href: "/cuentas-bancarias",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 10l9-6 9 6M4 10h16M6 10v8M10 10v8M14 10v8M18 10v8M3 18h18" />
+      </svg>
+    ),
+  },
+  {
     label: "Usuarios",
     href: "/usuarios",
     icon: (
@@ -148,7 +157,7 @@ export function PanelShell({
             <nav className="overflow-x-auto pb-2 md:overflow-visible md:pb-0">
               <ul className="flex min-w-max gap-1 md:min-w-0 md:flex-col">
                 {MAIN_MENU.map((item) => {
-                  const active = pathname === item.href;
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                   return (
                     <li key={item.href}>
                       <Link href={item.href} className={itemClass(active)}>

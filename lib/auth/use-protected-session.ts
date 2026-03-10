@@ -13,15 +13,27 @@ type ProtectedSessionState = {
   accessToken: string | null;
 };
 
+let protectedSessionCache: ProtectedSessionState | null = null;
+
 export function useProtectedSession() {
   const router = useRouter();
-  const [state, setState] = useState<ProtectedSessionState>({
-    loading: true,
-    profile: null,
-    accessToken: null,
-  });
+  const [state, setState] = useState<ProtectedSessionState>(
+    () =>
+      protectedSessionCache ?? {
+        loading: true,
+        profile: null,
+        accessToken: null,
+      }
+  );
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async (force = false) => {
+    if (!force && protectedSessionCache?.profile && protectedSessionCache.accessToken) {
+      setState(protectedSessionCache);
+      return;
+    }
+
+    setState((current) => ({ ...current, loading: true }));
+
     const [{ data: authData }, { data: sessionData }] = await Promise.all([
       supabase.auth.getUser(),
       supabase.auth.getSession(),
@@ -31,6 +43,8 @@ export function useProtectedSession() {
     const token = sessionData.session?.access_token ?? null;
 
     if (!user || !token) {
+      protectedSessionCache = null;
+      setState({ loading: false, profile: null, accessToken: null });
       router.replace("/");
       return;
     }
@@ -53,24 +67,35 @@ export function useProtectedSession() {
     const profile = fallback?.data ?? primary.data;
 
     if (!profile) {
+      protectedSessionCache = null;
+      setState({ loading: false, profile: null, accessToken: null });
       router.replace("/wait");
       return;
     }
 
     const role = normalizeRole(profile.role);
     if (!canAccessDashboard(role, profile.is_approved)) {
+      protectedSessionCache = null;
+      setState({ loading: false, profile: null, accessToken: null });
       router.replace("/wait");
       return;
     }
 
-    setState({
+    const nextState: ProtectedSessionState = {
       loading: false,
       profile: { ...profile, role },
       accessToken: token,
-    });
+    };
+
+    protectedSessionCache = nextState;
+    setState(nextState);
   }, [router]);
 
   useEffect(() => {
+    if (protectedSessionCache?.profile && protectedSessionCache.accessToken) {
+      return;
+    }
+
     const timer = window.setTimeout(() => {
       void loadSession();
     }, 0);
@@ -80,9 +105,33 @@ export function useProtectedSession() {
     };
   }, [loadSession]);
 
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        protectedSessionCache = null;
+        setState({ loading: false, profile: null, accessToken: null });
+        return;
+      }
+
+      if (event === "TOKEN_REFRESHED" && protectedSessionCache) {
+        protectedSessionCache = {
+          ...protectedSessionCache,
+          accessToken: session.access_token ?? protectedSessionCache.accessToken,
+        };
+        setState(protectedSessionCache);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return {
     ...state,
     isManager: state.profile?.role === "owner" || state.profile?.role === "admin",
-    refresh: loadSession,
+    refresh: () => loadSession(true),
   };
 }

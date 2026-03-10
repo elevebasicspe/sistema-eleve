@@ -1,5 +1,5 @@
-import { ModuleSkeleton } from "@/components/panel/loading-skeletons";
+import { IngresosSkeleton } from "@/components/panel/loading-skeletons";
 
 export default function Loading() {
-  return <ModuleSkeleton title="Ingresos" />;
+  return <IngresosSkeleton />;
 }

@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ELEVE",
   description: "Plataforma de gestion y metricas",
+  icons: {
+    icon: "/Isotipo-eleve.png",
+    shortcut: "/Isotipo-eleve.png",
+    apple: "/Isotipo-eleve.png",
+  },
 };
 
 export default function RootLayout({
