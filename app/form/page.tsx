@@ -139,6 +139,7 @@ function SelectorField({
 }
 
 export default function PublicFormPage() {
+  const todayYmd = toYmd(new Date());
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -150,7 +151,7 @@ export default function PublicFormPage() {
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([]);
 
   const [type, setType] = useState<MovementType>("income");
-  const [date, setDate] = useState(toYmd(new Date()));
+  const [date, setDate] = useState(todayYmd);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -244,7 +245,7 @@ export default function PublicFormPage() {
       type === "income"
         ? {
             type,
-            date,
+            date: date || todayYmd,
             amount,
             categoryId,
             paymentMethodId,
@@ -252,7 +253,7 @@ export default function PublicFormPage() {
           }
         : {
             type,
-            date,
+            date: date || todayYmd,
             amount,
             categoryId,
             bankAccountId,
@@ -428,15 +429,12 @@ export default function PublicFormPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label htmlFor="date" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
-                        Fecha
-                      </label>
                       <div className="relative mt-1">
                         <input
                           id="date"
                           type="date"
                           value={date}
-                          onChange={(event) => setDate(event.target.value)}
+                          onChange={(event) => setDate(event.target.value || todayYmd)}
                           required
                           className="eleve-date-input absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                         />
