@@ -75,6 +75,8 @@ type AccountFormState = {
   holderDni: string;
 };
 
+type AdjustmentMode = "add" | "subtract";
+
 const INITIAL_FORM: AccountFormState = {
   name: "",
   initialBalance: "0",
@@ -196,10 +198,22 @@ export default function CuentasBancariasPage() {
   const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingPaymentMethod, setIsSavingPaymentMethod] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [isSavingTransfer, setIsSavingTransfer] = useState(false);
+  const [isSavingAdjustment, setIsSavingAdjustment] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingPaymentMethodId, setDeletingPaymentMethodId] = useState<string | null>(null);
   const [paymentMethodName, setPaymentMethodName] = useState("");
   const [paymentMethodBankAccountId, setPaymentMethodBankAccountId] = useState("");
+  const [transferOriginId, setTransferOriginId] = useState("");
+  const [transferDestinationId, setTransferDestinationId] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDescription, setTransferDescription] = useState("");
+  const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>("add");
+  const [adjustmentAccountId, setAdjustmentAccountId] = useState("");
+  const [adjustmentAmount, setAdjustmentAmount] = useState("");
+  const [adjustmentDescription, setAdjustmentDescription] = useState("");
   const [form, setForm] = useState<AccountFormState>(INITIAL_FORM);
 
   const loadAccounts = async () => {
@@ -513,6 +527,117 @@ export default function CuentasBancariasPage() {
     setSuccess(`Medio de pago "${method.name}" eliminado.`);
   };
 
+  const openTransferModal = () => {
+    if (!accounts.length) return;
+    const origin = accounts[0]?.id ?? "";
+    const destination =
+      accounts.find((account) => account.id !== origin)?.id ?? accounts[0]?.id ?? "";
+
+    setTransferOriginId(origin);
+    setTransferDestinationId(destination);
+    setTransferAmount("");
+    setTransferDescription("");
+    setIsTransferModalOpen(true);
+  };
+
+  const openAdjustModal = () => {
+    if (!accounts.length) return;
+    setAdjustmentMode("add");
+    setAdjustmentAccountId(accounts[0]?.id ?? "");
+    setAdjustmentAmount("");
+    setAdjustmentDescription("");
+    setIsAdjustModalOpen(true);
+  };
+
+  const onSubmitTransfer = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isManager) return;
+
+    setError(null);
+    setSuccess(null);
+
+    const amount = Number(normalizeDecimal(transferAmount));
+    if (!transferOriginId || !transferDestinationId) {
+      setError("Selecciona origen y destino.");
+      return;
+    }
+
+    if (transferOriginId === transferDestinationId) {
+      setError("Origen y destino deben ser diferentes.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Monto invalido para transferir.");
+      return;
+    }
+
+    setIsSavingTransfer(true);
+
+    const { error: rpcError } = await supabase.rpc("transfer_bank_balance", {
+      p_origin_account_id: transferOriginId,
+      p_destination_account_id: transferDestinationId,
+      p_amount: amount,
+      p_description: transferDescription.trim() || null,
+    });
+
+    setIsSavingTransfer(false);
+
+    if (rpcError) {
+      setError(`No se pudo transferir: ${rpcError.message}`);
+      return;
+    }
+
+    setIsTransferModalOpen(false);
+    setTransferAmount("");
+    setTransferDescription("");
+    setSuccess("Transferencia registrada.");
+    await loadAccounts();
+  };
+
+  const onSubmitAdjustment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isManager) return;
+
+    setError(null);
+    setSuccess(null);
+
+    const amount = Number(normalizeDecimal(adjustmentAmount));
+    if (!adjustmentAccountId) {
+      setError("Selecciona una cuenta para ajustar.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Monto invalido para ajustar.");
+      return;
+    }
+
+    setIsSavingAdjustment(true);
+
+    const { error: rpcError } = await supabase.rpc("adjust_bank_balance", {
+      p_bank_account_id: adjustmentAccountId,
+      p_adjustment_type: adjustmentMode,
+      p_amount: amount,
+      p_description: adjustmentDescription.trim() || null,
+    });
+
+    setIsSavingAdjustment(false);
+
+    if (rpcError) {
+      setError(`No se pudo ajustar saldo: ${rpcError.message}`);
+      return;
+    }
+
+    setIsAdjustModalOpen(false);
+    setAdjustmentAmount("");
+    setAdjustmentDescription("");
+    setSuccess(
+      adjustmentMode === "add" ? "Ajuste de suma registrado." : "Ajuste de resta registrado."
+    );
+    await loadAccounts();
+  };
+
   if (loading || !profile) return <CuentasBancariasSkeleton />;
 
   return (
@@ -549,6 +674,22 @@ export default function CuentasBancariasPage() {
               className="rounded-lg border border-[#d7b7a0]/80 bg-white px-3 py-2 text-xs font-semibold text-[#0a193b]"
             >
               Crear cuenta Efectivo
+            </button>
+            <button
+              type="button"
+              onClick={openTransferModal}
+              disabled={accounts.length < 2}
+              className="rounded-lg border border-[#d7b7a0]/80 bg-white px-3 py-2 text-xs font-semibold text-[#0a193b] disabled:opacity-60"
+            >
+              Transferir
+            </button>
+            <button
+              type="button"
+              onClick={openAdjustModal}
+              disabled={accounts.length === 0}
+              className="rounded-lg border border-[#d7b7a0]/80 bg-white px-3 py-2 text-xs font-semibold text-[#0a193b] disabled:opacity-60"
+            >
+              Ajustar
             </button>
           </div>
         ) : undefined
@@ -929,6 +1070,230 @@ export default function CuentasBancariasPage() {
                 <button
                   type="button"
                   onClick={() => setIsPaymentMethodModalOpen(false)}
+                  className="rounded-lg border border-[#d7b7a0]/70 bg-white px-4 py-2.5 text-sm font-semibold text-[#0a193b]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+          <section className="w-full max-w-lg rounded-2xl border border-[#d7b7a0]/55 bg-white p-5 shadow-[0_20px_45px_rgba(10,25,59,0.3)] sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold text-[#0a193b]">Transferir saldo</h2>
+                <p className="mt-1 text-sm text-[#0a193b]/70">
+                  Mueve dinero entre cuentas bancarias o efectivo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTransferModalOpen(false)}
+                className="rounded-md border border-[#d7b7a0]/60 px-2 py-1 text-sm text-[#0a193b]"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={onSubmitTransfer}>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="transferOrigin">
+                  Origen
+                </label>
+                <select
+                  id="transferOrigin"
+                  value={transferOriginId}
+                  onChange={(event) => setTransferOriginId(event.target.value)}
+                  className="w-full rounded-md border border-[#d7b7a0]/55 bg-white px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                  required
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="transferDestination">
+                  Destino
+                </label>
+                <select
+                  id="transferDestination"
+                  value={transferDestinationId}
+                  onChange={(event) => setTransferDestinationId(event.target.value)}
+                  className="w-full rounded-md border border-[#d7b7a0]/55 bg-white px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                  required
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="transferAmount">
+                  Monto
+                </label>
+                <input
+                  id="transferAmount"
+                  inputMode="decimal"
+                  value={transferAmount}
+                  onChange={(event) => setTransferAmount(event.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-[#d7b7a0]/55 px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="transferDescription">
+                  Detalle
+                </label>
+                <textarea
+                  id="transferDescription"
+                  rows={3}
+                  maxLength={180}
+                  value={transferDescription}
+                  onChange={(event) => setTransferDescription(event.target.value)}
+                  placeholder="Descripcion breve"
+                  className="w-full rounded-md border border-[#d7b7a0]/55 px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={isSavingTransfer || accounts.length < 2}
+                  className="rounded-lg bg-[#0a193b] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#12285e] disabled:opacity-60"
+                >
+                  {isSavingTransfer ? "Transfiriendo..." : "Transferir"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTransferModalOpen(false)}
+                  className="rounded-lg border border-[#d7b7a0]/70 bg-white px-4 py-2.5 text-sm font-semibold text-[#0a193b]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {isAdjustModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+          <section className="w-full max-w-lg rounded-2xl border border-[#d7b7a0]/55 bg-white p-5 shadow-[0_20px_45px_rgba(10,25,59,0.3)] sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold text-[#0a193b]">Ajustar saldo</h2>
+                <p className="mt-1 text-sm text-[#0a193b]/70">
+                  Suma o resta saldo manualmente a una cuenta.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAdjustModalOpen(false)}
+                className="rounded-md border border-[#d7b7a0]/60 px-2 py-1 text-sm text-[#0a193b]"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={onSubmitAdjustment}>
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-[#f6ebe3] p-1">
+                <button
+                  type="button"
+                  onClick={() => setAdjustmentMode("add")}
+                  className={
+                    adjustmentMode === "add"
+                      ? "rounded-md bg-[#0a193b] px-3 py-2 text-sm font-semibold text-white"
+                      : "rounded-md px-3 py-2 text-sm font-semibold text-[#0a193b]"
+                  }
+                >
+                  Sumar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdjustmentMode("subtract")}
+                  className={
+                    adjustmentMode === "subtract"
+                      ? "rounded-md bg-[#0a193b] px-3 py-2 text-sm font-semibold text-white"
+                      : "rounded-md px-3 py-2 text-sm font-semibold text-[#0a193b]"
+                  }
+                >
+                  Restar
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="adjustmentAccount">
+                  Cuenta
+                </label>
+                <select
+                  id="adjustmentAccount"
+                  value={adjustmentAccountId}
+                  onChange={(event) => setAdjustmentAccountId(event.target.value)}
+                  className="w-full rounded-md border border-[#d7b7a0]/55 bg-white px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                  required
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="adjustmentAmount">
+                  Monto
+                </label>
+                <input
+                  id="adjustmentAmount"
+                  inputMode="decimal"
+                  value={adjustmentAmount}
+                  onChange={(event) => setAdjustmentAmount(event.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-[#d7b7a0]/55 px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[#0a193b]" htmlFor="adjustmentDescription">
+                  Descripcion
+                </label>
+                <textarea
+                  id="adjustmentDescription"
+                  rows={3}
+                  maxLength={180}
+                  value={adjustmentDescription}
+                  onChange={(event) => setAdjustmentDescription(event.target.value)}
+                  placeholder="Descripcion breve"
+                  className="w-full rounded-md border border-[#d7b7a0]/55 px-3 py-2 text-sm text-[#0a193b] outline-none focus:border-[#0a193b]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={isSavingAdjustment || accounts.length === 0}
+                  className="rounded-lg bg-[#0a193b] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#12285e] disabled:opacity-60"
+                >
+                  {isSavingAdjustment ? "Guardando..." : "Aplicar ajuste"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAdjustModalOpen(false)}
                   className="rounded-lg border border-[#d7b7a0]/70 bg-white px-4 py-2.5 text-sm font-semibold text-[#0a193b]"
                 >
                   Cancelar
