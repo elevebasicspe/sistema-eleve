@@ -404,15 +404,15 @@ export default function PublicFormPage() {
                       <label htmlFor="date" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
                         Fecha
                       </label>
-                      <input
-                        id="date"
-                        type="date"
-                        value={date}
-                        onChange={(event) => setDate(event.target.value)}
-                        required
-                        className="min-h-16 w-full rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
-                      />
-                    </div>
+                        <input
+                          id="date"
+                          type="date"
+                          value={date}
+                          onChange={(event) => setDate(event.target.value)}
+                          required
+                          className="eleve-date-input mt-1 min-h-16 w-full min-w-0 rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
+                        />
+                      </div>
                   </div>
                 </div>
               </section>

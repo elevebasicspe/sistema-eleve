@@ -44,3 +44,25 @@ body {
   background-size: 400% 100%;
   animation: eleve-shimmer 1.2s ease-in-out infinite;
 }
+
+.eleve-date-input {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+}
+
+.eleve-date-input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.eleve-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .eleve-date-input {
+    width: 100%;
+    min-width: 100%;
+  }
+}
