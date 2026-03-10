@@ -134,12 +134,27 @@ export function PanelShell({
     router.replace("/");
   };
 
+  const avatarNode = (
+    <div className="h-10 w-10 overflow-hidden rounded-full border border-[#d7b7a0]/45 bg-[#e9d3c3]">
+      {profile.avatar_url ? (
+        <div
+          className="h-full w-full bg-cover bg-center"
+          style={{ backgroundImage: `url("${profile.avatar_url}")` }}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#0a193b]">
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <main className="min-h-screen bg-[#f3f1ef]">
       <div className="md:grid md:min-h-screen md:grid-cols-[228px_1fr]">
         <aside className="border-b border-[#d7b7a0]/50 bg-white md:border-r md:border-b-0">
           <div className="flex h-full flex-col px-3 py-4 md:sticky md:top-0 md:max-h-screen">
-            <div className="mb-4 px-2">
+            <div className="mb-4 flex items-center justify-between gap-3 px-2">
               <Image
                 src="/ELEVe-logo-transparente.svg"
                 alt="ELEVE"
@@ -148,6 +163,14 @@ export function PanelShell({
                 className="h-auto w-[128px]"
                 priority
               />
+              <Link
+                href={ACCOUNT_MENU.href}
+                className="rounded-full transition hover:opacity-90 md:hidden"
+                title="Mi cuenta"
+                aria-label="Mi cuenta"
+              >
+                {avatarNode}
+              </Link>
             </div>
 
             <div className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#0a193b]/45">
@@ -170,7 +193,7 @@ export function PanelShell({
               </ul>
             </nav>
 
-            <div className="mt-3 border-t border-[#d7b7a0]/40 pt-3 md:mt-auto">
+            <div className="mt-3 hidden border-t border-[#d7b7a0]/40 pt-3 md:mt-auto md:block">
               <div className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#0a193b]/45">
                 Cuenta
               </div>
@@ -180,18 +203,7 @@ export function PanelShell({
                     href={ACCOUNT_MENU.href}
                     className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-[#f6ebe3]"
                   >
-                    <div className="h-10 w-10 overflow-hidden rounded-full border border-[#d7b7a0]/45 bg-[#e9d3c3]">
-                      {profile.avatar_url ? (
-                        <div
-                          className="h-full w-full bg-cover bg-center"
-                          style={{ backgroundImage: `url("${profile.avatar_url}")` }}
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#0a193b]">
-                          {initials}
-                        </div>
-                      )}
-                    </div>
+                    {avatarNode}
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-[#0a193b]">
                         {profile.full_name}
