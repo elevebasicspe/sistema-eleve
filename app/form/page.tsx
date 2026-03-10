@@ -440,7 +440,6 @@ export default function PublicFormPage() {
                     <SelectorField
                       label="Medio de pago"
                       value={selectedPaymentMethod?.name || ""}
-                      helper={selectedPaymentMethod?.bankAccountName || undefined}
                       onOpen={() => setOpenSelector("paymentMethod")}
                     />
                   ) : (
