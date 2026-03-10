@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type MovementType = "income" | "expense";
+type SelectorKey = "category" | "paymentMethod" | "bankAccount" | null;
 
 type CategoryOption = {
   id: string;
@@ -45,6 +46,71 @@ function getExpenseFormLabel(category?: CategoryOption | null): string {
   return category.subcategory_name?.trim() || category.name || category.category_name?.trim() || "Sin subcategoria";
 }
 
+function ChevronDown() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5 text-[#0a193b]/68"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5 text-[#0a193b]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="m5 12 5 5L20 7" />
+    </svg>
+  );
+}
+
+type SelectorFieldProps = {
+  label: string;
+  value: string;
+  helper?: string;
+  placeholder?: string;
+  onOpen: () => void;
+};
+
+function SelectorField({
+  label,
+  value,
+  helper,
+  placeholder = "Selecciona una opcion",
+  onOpen,
+}: SelectorFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-left text-base text-[#0a193b] outline-none transition hover:bg-white focus:border-[#0a193b] focus:bg-white"
+      >
+        <span className={value ? "font-medium text-[#0a193b]" : "text-[#0a193b]/45"}>
+          {value || placeholder}
+        </span>
+        <ChevronDown />
+      </button>
+      {helper ? <p className="text-xs text-[#0a193b]/62">{helper}</p> : null}
+    </div>
+  );
+}
+
 export default function PublicFormPage() {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,13 +129,13 @@ export default function PublicFormPage() {
   const [categoryId, setCategoryId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
+  const [openSelector, setOpenSelector] = useState<SelectorKey>(null);
 
   const categoryOptions = type === "income" ? incomeCategories : expenseCategories;
-  const selectedMethod = useMemo(
-    () => paymentMethods.find((method) => method.id === paymentMethodId) ?? null,
-    [paymentMethodId, paymentMethods]
-  );
   const categoryFieldLabel = type === "income" ? "Categoria" : "Subcategoria";
+  const selectedCategory = categoryOptions.find((item) => item.id === categoryId) ?? null;
+  const selectedPaymentMethod = paymentMethods.find((item) => item.id === paymentMethodId) ?? null;
+  const selectedBankAccount = bankAccounts.find((item) => item.id === bankAccountId) ?? null;
 
   useEffect(() => {
     let active = true;
@@ -117,6 +183,17 @@ export default function PublicFormPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!openSelector) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [openSelector]);
 
   const changeType = (nextType: MovementType) => {
     setType(nextType);
@@ -172,6 +249,52 @@ export default function PublicFormPage() {
     setSuccess(type === "income" ? "Ingreso registrado." : "Gasto registrado.");
     setAmount("");
     setDescription("");
+  };
+
+  let selectorTitle = "";
+  let selectorOptions: Array<{ id: string; title: string; subtitle?: string }> = [];
+  let selectedOptionId = "";
+
+  if (openSelector === "category") {
+    selectorTitle = type === "income" ? "Selecciona categoria" : "Selecciona subcategoria";
+    selectorOptions = categoryOptions.map((category) => ({
+      id: category.id,
+      title: type === "income" ? getIncomeFormLabel(category) : getExpenseFormLabel(category),
+      subtitle:
+        type === "income"
+          ? category.subcategory_name?.trim() && category.subcategory_name?.trim() !== getIncomeFormLabel(category)
+            ? category.subcategory_name?.trim()
+            : "Categoria principal"
+          : category.category_name?.trim() || undefined,
+    }));
+    selectedOptionId = categoryId;
+  }
+
+  if (openSelector === "paymentMethod") {
+    selectorTitle = "Selecciona medio de pago";
+    selectorOptions = paymentMethods.map((method) => ({
+      id: method.id,
+      title: method.name,
+      subtitle: method.bankAccountName || undefined,
+    }));
+    selectedOptionId = paymentMethodId;
+  }
+
+  if (openSelector === "bankAccount") {
+    selectorTitle = "Selecciona cuenta bancaria";
+    selectorOptions = bankAccounts.map((account) => ({
+      id: account.id,
+      title: account.name,
+      subtitle: account.currency,
+    }));
+    selectedOptionId = bankAccountId;
+  }
+
+  const applySelectorValue = (nextValue: string) => {
+    if (openSelector === "category") setCategoryId(nextValue);
+    if (openSelector === "paymentMethod") setPaymentMethodId(nextValue);
+    if (openSelector === "bankAccount") setBankAccountId(nextValue);
+    setOpenSelector(null);
   };
 
   return (
@@ -303,87 +426,40 @@ export default function PublicFormPage() {
                 </p>
 
                 <div className="mt-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="categoryId" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
-                      {categoryFieldLabel}
-                    </label>
-                    <select
-                      id="categoryId"
-                      value={categoryId}
-                      onChange={(event) => setCategoryId(event.target.value)}
-                      required
-                      className="min-h-14 w-full rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
-                    >
-                      {categoryOptions.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {type === "income" ? getIncomeFormLabel(category) : getExpenseFormLabel(category)}
-                        </option>
-                      ))}
-                    </select>
-                    {type === "expense" && (
-                      <p className="text-xs text-[#0a193b]/62">
-                        Se registra usando la subcategoria del gasto.
-                      </p>
-                    )}
-                    {type === "income" && (
-                      <p className="text-xs text-[#0a193b]/62">
-                        Las ventas se registran usando la categoria principal.
-                      </p>
-                    )}
-                  </div>
+                  <SelectorField
+                    label={categoryFieldLabel}
+                    value={
+                      selectedCategory
+                        ? type === "income"
+                          ? getIncomeFormLabel(selectedCategory)
+                          : getExpenseFormLabel(selectedCategory)
+                        : ""
+                    }
+                    helper={
+                      type === "income"
+                        ? "Las ventas se registran usando la categoria principal."
+                        : "Se registra usando la subcategoria del gasto."
+                    }
+                    onOpen={() => setOpenSelector("category")}
+                  />
 
                   {type === "income" ? (
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <label htmlFor="paymentMethodId" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
-                          Medio de pago
-                        </label>
-                        <select
-                          id="paymentMethodId"
-                          value={paymentMethodId}
-                          onChange={(event) => setPaymentMethodId(event.target.value)}
-                          required
-                          className="min-h-14 w-full rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
-                        >
-                          {paymentMethods.map((method) => (
-                            <option key={method.id} value={method.id}>
-                              {method.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="rounded-2xl border border-[#d7b7a0]/35 bg-[#f7f2ee] px-4 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b5f4d]">
-                          Destino automatico
-                        </p>
-                        <p className="mt-1 text-base font-semibold text-[#0a193b]">
-                          {selectedMethod?.bankAccountName || "-"}
-                        </p>
-                        <p className="text-sm text-[#0a193b]/65">
-                          {selectedMethod?.currency ? `Cuenta en ${selectedMethod.currency}` : "Sin cuenta vinculada"}
-                        </p>
-                      </div>
-                    </div>
+                    <SelectorField
+                      label="Medio de pago"
+                      value={selectedPaymentMethod?.name || ""}
+                      helper={selectedPaymentMethod?.bankAccountName || undefined}
+                      onOpen={() => setOpenSelector("paymentMethod")}
+                    />
                   ) : (
-                    <div className="space-y-1.5">
-                      <label htmlFor="bankAccountId" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
-                        Cuenta bancaria
-                      </label>
-                      <select
-                        id="bankAccountId"
-                        value={bankAccountId}
-                        onChange={(event) => setBankAccountId(event.target.value)}
-                        required
-                        className="min-h-14 w-full rounded-2xl border border-[#d7b7a0]/60 bg-[#fcfaf8] px-4 text-base text-[#0a193b] outline-none transition focus:border-[#0a193b] focus:bg-white"
-                      >
-                        {bankAccounts.map((account) => (
-                          <option key={account.id} value={account.id}>
-                            {account.name} ({account.currency})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <SelectorField
+                      label="Cuenta bancaria"
+                      value={
+                        selectedBankAccount
+                          ? `${selectedBankAccount.name} (${selectedBankAccount.currency})`
+                          : ""
+                      }
+                      onOpen={() => setOpenSelector("bankAccount")}
+                    />
                   )}
                 </div>
               </section>
@@ -447,6 +523,63 @@ export default function PublicFormPage() {
           >
             {submitting ? "Guardando..." : type === "income" ? "Registrar ingreso" : "Registrar gasto"}
           </button>
+        </div>
+      )}
+
+      {openSelector && (
+        <div className="fixed inset-0 z-50 bg-[#0a193b]/28 backdrop-blur-[1px]">
+          <button
+            type="button"
+            aria-label="Cerrar selector"
+            className="absolute inset-0"
+            onClick={() => setOpenSelector(null)}
+          />
+          <section className="absolute inset-x-0 bottom-0 rounded-t-[26px] bg-white px-4 pb-[calc(0.9rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_40px_rgba(10,25,59,0.18)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-[28rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[24px] sm:px-4 sm:pb-4 sm:pt-4">
+            <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-[#d7b7a0]/65 sm:hidden" />
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0a193b]/48">
+                  Selector
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-[#0a193b]">{selectorTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenSelector(null)}
+                className="rounded-full border border-[#d7b7a0]/55 px-3 py-1.5 text-[11px] font-semibold text-[#0a193b]"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="max-h-[52vh] space-y-1.5 overflow-y-auto pr-1 pb-1 sm:max-h-[22rem]">
+              {selectorOptions.map((option) => {
+                const active = option.id === selectedOptionId;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => applySelectorValue(option.id)}
+                    className={
+                      active
+                        ? "flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#0a193b] bg-[#f6ebe3] px-3.5 py-2.5 text-left shadow-[0_8px_16px_rgba(10,25,59,0.06)]"
+                        : "flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#d7b7a0]/35 bg-[#fcfaf8] px-3.5 py-2.5 text-left transition hover:bg-white"
+                    }
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[0.97rem] font-semibold text-[#0a193b]">{option.title}</p>
+                      {option.subtitle ? (
+                        <p className="mt-0.5 truncate text-[13px] text-[#0a193b]/62">{option.subtitle}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white">
+                      {active ? <CheckIcon /> : <span className="h-2 w-2 rounded-full bg-[#d7b7a0]/55" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
       )}
     </main>
