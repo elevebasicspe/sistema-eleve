@@ -374,10 +374,7 @@ export default function PublicFormPage() {
               <section className="rounded-[24px] border border-[#d7b7a0]/40 bg-white p-4 shadow-[0_10px_24px_rgba(10,25,59,0.08)]">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0a193b]/55">
-                      Datos base
-                    </p>
-                    <h1 className="mt-1 text-2xl font-semibold text-[#0a193b]">
+                    <h1 className="text-2xl font-semibold text-[#0a193b]">
                       {type === "income" ? "Registrar ingreso" : "Registrar gasto"}
                     </h1>
                   </div>
@@ -421,11 +418,7 @@ export default function PublicFormPage() {
               </section>
 
               <section className="rounded-[24px] border border-[#d7b7a0]/40 bg-white p-4 shadow-[0_10px_24px_rgba(10,25,59,0.08)]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0a193b]/55">
-                  Clasificacion
-                </p>
-
-                <div className="mt-4 space-y-4">
+                <div className="space-y-4">
                   <SelectorField
                     label={categoryFieldLabel}
                     value={
@@ -465,10 +458,7 @@ export default function PublicFormPage() {
               </section>
 
               <section className="rounded-[24px] border border-[#d7b7a0]/40 bg-white p-4 shadow-[0_10px_24px_rgba(10,25,59,0.08)]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0a193b]/55">
-                  Detalle
-                </p>
-                <div className="mt-4 space-y-1.5">
+                <div className="space-y-1.5">
                   <label htmlFor="description" className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0a193b]/60">
                     Descripcion
                   </label>
