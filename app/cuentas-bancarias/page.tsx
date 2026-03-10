@@ -579,12 +579,12 @@ export default function CuentasBancariasPage() {
                 <th className="px-3 py-2 text-right font-semibold">Saldo actual</th>
                 <th className="px-3 py-2 font-semibold">Banco</th>
                 <th className="px-3 py-2 font-semibold">Tipo</th>
-                <th className="px-3 py-2 font-semibold">Nro cuenta</th>
-                <th className="px-3 py-2 font-semibold">CCI</th>
-                <th className="px-3 py-2 font-semibold">Divisa</th>
-                <th className="px-3 py-2 font-semibold">Titular</th>
-                <th className="px-3 py-2 font-semibold">DNI</th>
-                <th className="px-3 py-2 text-center font-semibold">Acciones</th>
+                <th className="hidden px-3 py-2 font-semibold sm:table-cell">Nro cuenta</th>
+                <th className="hidden px-3 py-2 font-semibold sm:table-cell">CCI</th>
+                <th className="hidden px-3 py-2 font-semibold sm:table-cell">Divisa</th>
+                <th className="hidden px-3 py-2 font-semibold sm:table-cell">Titular</th>
+                <th className="hidden px-3 py-2 font-semibold sm:table-cell">DNI</th>
+                <th className="hidden px-3 py-2 text-center font-semibold sm:table-cell">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -596,12 +596,12 @@ export default function CuentasBancariasPage() {
                   </td>
                   <td className="px-3 py-2">{account.bank_name || "-"}</td>
                   <td className="px-3 py-2">{account.account_type || "-"}</td>
-                  <td className="px-3 py-2">{account.account_number || "-"}</td>
-                  <td className="px-3 py-2">{account.cci || "-"}</td>
-                  <td className="px-3 py-2">{account.currency}</td>
-                  <td className="px-3 py-2">{account.holder_name || "-"}</td>
-                  <td className="px-3 py-2">{account.holder_dni || "-"}</td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="hidden px-3 py-2 sm:table-cell">{account.account_number || "-"}</td>
+                  <td className="hidden px-3 py-2 sm:table-cell">{account.cci || "-"}</td>
+                  <td className="hidden px-3 py-2 sm:table-cell">{account.currency}</td>
+                  <td className="hidden px-3 py-2 sm:table-cell">{account.holder_name || "-"}</td>
+                  <td className="hidden px-3 py-2 sm:table-cell">{account.holder_dni || "-"}</td>
+                  <td className="hidden px-3 py-2 text-center sm:table-cell">
                     {isManager ? (
                       <button
                         type="button"
@@ -642,7 +642,7 @@ export default function CuentasBancariasPage() {
                 <th className="px-3 py-2 font-semibold">Nombre</th>
                 <th className="px-3 py-2 font-semibold">Cuenta vinculada</th>
                 <th className="px-3 py-2 font-semibold">Divisa</th>
-                <th className="px-3 py-2 text-center font-semibold">Acciones</th>
+                <th className="hidden px-3 py-2 text-center font-semibold sm:table-cell">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -651,7 +651,7 @@ export default function CuentasBancariasPage() {
                   <td className="px-3 py-2 font-semibold">{method.name}</td>
                   <td className="px-3 py-2">{method.bank_accounts?.name || "-"}</td>
                   <td className="px-3 py-2">{method.bank_accounts?.currency || "-"}</td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="hidden px-3 py-2 text-center sm:table-cell">
                     {isManager ? (
                       <button
                         type="button"
