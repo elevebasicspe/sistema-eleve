@@ -11,11 +11,16 @@ type FormPayload = {
   paymentMethodId?: string;
   bankAccountId?: string;
   description?: string;
-  registeredByName?: string;
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const DEFAULT_REGISTERED_BY_NAME = "Larry";
+const DEFAULT_REGISTERED_BY_ID = "f654730a-d8af-4aba-85e5-4ea5706746d9";
+
+type RegisteredByProfile = {
+  id: string;
+  full_name: string;
+  email: string;
+};
 
 function sanitizeText(value: unknown, max = 220): string {
   if (typeof value !== "string") return "";
@@ -122,9 +127,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Categoria obligatoria." }, { status: 400 });
   }
 
-  const registeredByName =
-    sanitizeText(payload.registeredByName, 80) || DEFAULT_REGISTERED_BY_NAME;
-
   const description = sanitizeText(payload.description);
 
   let supabaseAdmin;
@@ -136,6 +138,36 @@ export async function POST(request: NextRequest) {
         error:
           error instanceof Error ? error.message : "No se pudo inicializar el cliente admin.",
       },
+      { status: 500 }
+    );
+  }
+
+  const { data: registeredByProfile, error: registeredByError } = await supabaseAdmin
+    .from("profiles")
+    .select("id,full_name,email")
+    .eq("id", DEFAULT_REGISTERED_BY_ID)
+    .maybeSingle<RegisteredByProfile>();
+
+  if (registeredByError) {
+    return NextResponse.json(
+      { error: `No se pudo cargar el usuario base Larry: ${registeredByError.message}` },
+      { status: 500 }
+    );
+  }
+
+  if (!registeredByProfile) {
+    return NextResponse.json(
+      { error: "No existe el usuario base Larry en profiles." },
+      { status: 500 }
+    );
+  }
+
+  const registeredByName = sanitizeText(registeredByProfile.full_name, 80);
+  const registeredByEmail = sanitizeText(registeredByProfile.email, 120);
+
+  if (!registeredByName || !registeredByEmail) {
+    return NextResponse.json(
+      { error: "El perfil base Larry debe tener nombre y correo completos." },
       { status: 500 }
     );
   }
@@ -152,7 +184,9 @@ export async function POST(request: NextRequest) {
       category_id: categoryId,
       payment_method_id: paymentMethodId,
       description,
+      registered_by: registeredByProfile.id,
       registered_by_name: registeredByName,
+      registered_by_email: registeredByEmail || null,
       created_by_app: "OMNI AGENCIA S.A.C.",
     });
 
@@ -177,7 +211,9 @@ export async function POST(request: NextRequest) {
     category_id: categoryId,
     bank_account_id: bankAccountId,
     description,
+    registered_by: registeredByProfile.id,
     registered_by_name: registeredByName,
+    registered_by_email: registeredByEmail || null,
     created_by_app: "OMNI AGENCIA S.A.C.",
   });
 
