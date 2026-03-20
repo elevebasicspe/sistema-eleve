@@ -104,6 +104,13 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
+function formatDate(value: string): string {
+  if (!value) return "-";
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
 function getPresetRange(preset: Exclude<SummaryPreset, "custom">): { from: string; to: string } {
   const today = new Date();
   const todayYmd = toYmd(today);
@@ -295,11 +302,24 @@ export default function IngresosPage() {
   const hasPaymentMethodFilter = selectedPaymentMethods.length > 0;
   const hasDestinationAccountFilter = selectedDestinationAccountIds.length > 0;
 
+  const applySharedDateRange = (
+    from: string,
+    to: string,
+    preset: SummaryPreset = "custom"
+  ) => {
+    setSummaryPreset(preset);
+    setSummaryFrom(from);
+    setSummaryTo(to);
+    setLogFrom(from);
+    setLogTo(to);
+    setDraftLogFrom(from);
+    setDraftLogTo(to);
+    setLogsPage(1);
+  };
+
   const applyQuickSummaryRange = (preset: Exclude<SummaryPreset, "custom">) => {
     const range = getPresetRange(preset);
-    setSummaryPreset(preset);
-    setSummaryFrom(range.from);
-    setSummaryTo(range.to);
+    applySharedDateRange(range.from, range.to, preset);
   };
 
   const loadCategories = useCallback(async () => {
@@ -393,9 +413,9 @@ export default function IngresosPage() {
 
     const { data, error } = await supabase
       .from("incomes")
-      .select("amount,category_id,created_at")
-      .gte("created_at", `${summaryFrom}T00:00:00`)
-      .lte("created_at", `${summaryTo}T23:59:59`);
+      .select("amount,category_id")
+      .gte("income_date", summaryFrom)
+      .lte("income_date", summaryTo);
 
     setSummaryLoading(false);
 
@@ -445,8 +465,9 @@ export default function IngresosPage() {
         "id,amount,category_id,destination_bank_account_id,payment_method,description,income_date,registered_by_name,registered_by_email,created_at",
         { count: "exact" }
       )
-      .gte("created_at", `${logFrom}T00:00:00`)
-      .lte("created_at", `${logTo}T23:59:59`)
+      .gte("income_date", logFrom)
+      .lte("income_date", logTo)
+      .order("income_date", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (selectedCategoryIds.length > 0) {
@@ -765,8 +786,7 @@ export default function IngresosPage() {
             type="date"
             value={summaryFrom}
             onChange={(event) => {
-              setSummaryPreset("custom");
-              setSummaryFrom(event.target.value);
+              applySharedDateRange(event.target.value, summaryTo, "custom");
             }}
             className="rounded-lg border border-[#d7b7a0]/80 bg-white px-2 py-2 text-xs text-[#0a193b]"
           />
@@ -774,8 +794,7 @@ export default function IngresosPage() {
             type="date"
             value={summaryTo}
             onChange={(event) => {
-              setSummaryPreset("custom");
-              setSummaryTo(event.target.value);
+              applySharedDateRange(summaryFrom, event.target.value, "custom");
             }}
             className="rounded-lg border border-[#d7b7a0]/80 bg-white px-2 py-2 text-xs text-[#0a193b]"
           />
@@ -1295,7 +1314,13 @@ export default function IngresosPage() {
                       key={row?.id ?? `empty-${logsPage}-${index}`}
                       className="border-t border-[#d7b7a0]/35 text-[#0a193b]/90"
                     >
-                      <td className="px-3 py-3">{row ? formatDateTime(row.created_at) : ""}</td>
+                      <td className="px-3 py-3">
+                        {row
+                          ? row.income_date
+                            ? formatDate(row.income_date)
+                            : formatDateTime(row.created_at)
+                          : ""}
+                      </td>
                       <td className="px-3 py-3 font-semibold text-[#0a193b]">
                         {row ? formatPen(Number(row.amount) || 0) : ""}
                       </td>
